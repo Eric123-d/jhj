@@ -5,13 +5,7 @@ import time
 
 class WebCrawler:
     def __init__(self, urls, max_threads=5):
-        self.urls = urls
-        self.max_threads = max_threads
-        self.queue = Queue()
-        self.results = {}
-        self.lock = threading.Lock()
-        self.total = len(urls)
-        self.completed = 0
+        
 
     def fetch(self):
         while True:
