@@ -116,3 +116,129 @@ def main():
 
 if __name__ == "__main__":
     main()
+import pygame
+import random
+import sys
+
+# 初始化
+pygame.init()
+WIDTH, HEIGHT = 800, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("2D 冒险游戏")
+clock = pygame.time.Clock()
+
+# 颜色
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
+BLACK = (0, 0, 0)
+
+# 玩家类
+class Player(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((40, 60))
+        self.image.fill((0, 100, 255))
+        self.rect = self.image.get_rect()
+        self.rect.center = (WIDTH // 2, HEIGHT // 2)
+        self.health = 100
+        self.speed = 5
+
+    def update(self, keys):
+        if keys[pygame.K_a]: self.rect.x -= self.speed
+        if keys[pygame.K_d]: self.rect.x += self.speed
+        if keys[pygame.K_w]: self.rect.y -= self.speed
+        if keys[pygame.K_s]: self.rect.y += self.speed
+
+        # 边界限制
+        self.rect.clamp_ip(screen.get_rect())
+
+# 怪物类
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((30, 30))
+        self.image.fill((200, 0, 0))
+        self.rect = self.image.get_rect()
+        self.rect.x = random.randint(0, WIDTH - 30)
+        self.rect.y = random.randint(0, HEIGHT - 30)
+        self.speed = 2
+
+    def update(self, player_rect):
+        if self.rect.x < player_rect.x: self.rect.x += self.speed
+        if self.rect.x > player_rect.x: self.rect.x -= self.speed
+        if self.rect.y < player_rect.y: self.rect.y += self.speed
+        if self.rect.y > player_rect.y: self.rect.y -= self.speed
+
+# 物品类
+class Item(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.Surface((20, 20))
+        self.image.fill((0, 255, 0))
+        self.rect = self.image.get_rect(topleft=(x, y))
+
+# 创建精灵组
+player = Player()
+player_group = pygame.sprite.Group(player)
+
+enemy_group = pygame.sprite.Group()
+for _ in range(5):
+    enemy_group.add(Enemy())
+
+item_group = pygame.sprite.Group()
+for _ in range(3):
+    x = random.randint(0, WIDTH - 20)
+    y = random.randint(0, HEIGHT - 20)
+    item_group.add(Item(x, y))
+
+# 游戏主循环
+def game_loop():
+    running = True
+    font = pygame.font.SysFont(None, 36)
+    collected = 0
+
+    while running:
+        clock.tick(60)
+        screen.fill(WHITE)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+        keys = pygame.key.get_pressed()
+        player.update(keys)
+
+        # 更新怪物
+        for enemy in enemy_group:
+            enemy.update(player.rect)
+
+        # 检测碰撞
+        if pygame.sprite.spritecollide(player, enemy_group, False):
+            player.health -= 1
+            if player.health <= 0:
+                print("你输了！")
+                running = False
+
+        collected_items = pygame.sprite.spritecollide(player, item_group, True)
+        collected += len(collected_items)
+
+        # 画出精灵
+        item_group.draw(screen)
+        player_group.draw(screen)
+        enemy_group.draw(screen)
+
+        # 显示血量 & 收集数
+        health_text = font.render(f"HP: {player.health}", True, RED)
+        screen.blit(health_text, (10, 10))
+        item_text = font.render(f"收集物品: {collected}/3", True, BLACK)
+        screen.blit(item_text, (10, 50))
+
+        if collected >= 3:
+            win_text = font.render("你赢了！", True, (0, 150, 0))
+            screen.blit(win_text, (WIDTH // 2 - 50, HEIGHT // 2))
+
+        pygame.display.flip()
+
+# 运行游戏
+game_loop()
